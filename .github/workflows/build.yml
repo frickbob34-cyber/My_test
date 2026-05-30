@@ -19,8 +19,12 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/gradle-build-action@v2
+    - name: Download Gradle Wrapper JAR
+      run: |
+        mkdir -p gradle/wrapper
+        cd gradle/wrapper
+        curl -L -o gradle-wrapper.jar https://services.gradle.org/distributions/gradle-8.1-wrapper.jar
+        cd ../..
 
     - name: Make gradlew executable
       run: chmod +x ./gradlew
