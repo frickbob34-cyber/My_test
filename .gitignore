@@ -1,0 +1,5 @@
+.gradle/
+build/
+app/build/
+Android/
+gradle/wrapper/gradle-wrapper.jar
