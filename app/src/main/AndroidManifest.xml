@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.phone.health.booster">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ========== PERMISSIONS – ALL THE KEYS TO THE KINGDOM ========== -->
     <uses-permission android:name="android.permission.INTERNET" />
