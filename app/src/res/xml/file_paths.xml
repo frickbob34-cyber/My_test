@@ -1,1 +1,9 @@
-
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Allow access to external storage root -->
+    <external-path name="external" path="." />
+    <!-- Allow access to internal cache directory -->
+    <cache-path name="cache" path="." />
+    <!-- Allow access to internal files directory -->
+    <files-path name="files" path="." />
+</paths>
