@@ -1,4 +1,4 @@
-package com.phone.health.booster;
+package com.calc.plus;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
