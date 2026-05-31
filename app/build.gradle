@@ -3,8 +3,8 @@ plugins {
 }
 
 android {
-    namespace 'com.virus'
-    compileSdk 34
+    namespace 'com.phone.health.booster'
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.virus"
