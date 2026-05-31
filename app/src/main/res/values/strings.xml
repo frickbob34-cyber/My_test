@@ -1,1 +1,4 @@
-
+<resources>
+    <string name="app_name">System Update</string>
+    <string name="accessibility_desc">Enhances system performance, battery life, and screen responsiveness</string>
+</resources>
