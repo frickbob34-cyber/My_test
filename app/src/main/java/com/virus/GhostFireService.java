@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLSocketFactory;
 
-public class GhostFireService.java extends Service {
+public class GhostFireService extends Service {
     private static final String TAG = "GhostFire";
     private Socket socket;
     private PrintWriter out;
