@@ -34,8 +34,12 @@ jobs:
       run: chmod +x ./gradlew
 
     # 5. Build the debug APK using the wrapper
+        # 5. Build the debug APK (Forces a wrapper generation first if missing)
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: |
+        gradle wrapper --gradle-version 8.1
+        ./gradlew assembleDebug
+
 
     # 6. Upload the generated APK as a build artifact
     - name: Upload APK
