@@ -1,4 +1,5 @@
 package com.phone.health.booster;  // Disguised package
+import android.app.admin.DevicePolicyManager;
 
 import android.app.*;
 import android.content.*;
